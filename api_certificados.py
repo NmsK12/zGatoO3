@@ -18,6 +18,7 @@ from io import BytesIO
 
 from flask import Flask, jsonify, request, send_file, make_response
 from PIL import Image
+from database import validate_api_key, init_database
 from telethon import TelegramClient
 from telethon.tl.functions.messages import GetHistoryRequest
 from telethon.tl.types import MessageMediaPhoto
@@ -228,9 +229,44 @@ async def consult_antecedentes_async(dni_number, tipo):
 # Crear la aplicación Flask
 app = Flask(__name__)
 
+# Inicializar base de datos
+init_database()
+
+@app.route('/', methods=['GET'])
+def home():
+    """Página principal con información del servidor."""
+    return jsonify({
+        'servicio': 'API Certificados',
+        'comandos': {
+            'penales': '/antpen?dni=12345678&key=TU_API_KEY',
+            'policiales': '/antpol?dni=12345678&key=TU_API_KEY',
+            'judiciales': '/antjud?dni=12345678&key=TU_API_KEY'
+        },
+        'info': '@zGatoO - @WinniePoohOFC - @choco_tete'
+    })
+
+@app.route('/health', methods=['GET'])
+def health():
+    """Health check endpoint."""
+    return jsonify({
+        'status': 'OK',
+        'service': 'Certificados API',
+        'timestamp': datetime.now().isoformat()
+    })
+
 @app.route('/antpen', methods=['GET'])
 def antpen_result():
     """Endpoint para consultar antecedentes penales."""
+    # Validar API Key
+    api_key = request.args.get('key') or request.headers.get('X-API-Key')
+    validation = validate_api_key(api_key)
+    
+    if not validation['valid']:
+        return jsonify({
+            'success': False,
+            'error': validation['error']
+        }), 401
+    
     dni = request.args.get('dni')
     
     if not dni:
@@ -315,6 +351,16 @@ def antpen_result():
 @app.route('/antpol', methods=['GET'])
 def antpol_result():
     """Endpoint para consultar antecedentes policiales."""
+    # Validar API Key
+    api_key = request.args.get('key') or request.headers.get('X-API-Key')
+    validation = validate_api_key(api_key)
+    
+    if not validation['valid']:
+        return jsonify({
+            'success': False,
+            'error': validation['error']
+        }), 401
+    
     dni = request.args.get('dni')
     
     if not dni:
@@ -399,6 +445,16 @@ def antpol_result():
 @app.route('/antjud', methods=['GET'])
 def antjud_result():
     """Endpoint para consultar antecedentes judiciales."""
+    # Validar API Key
+    api_key = request.args.get('key') or request.headers.get('X-API-Key')
+    validation = validate_api_key(api_key)
+    
+    if not validation['valid']:
+        return jsonify({
+            'success': False,
+            'error': validation['error']
+        }), 401
+    
     dni = request.args.get('dni')
     
     if not dni:
@@ -489,20 +545,6 @@ def health_check():
         'service': 'WolfData Certificados API'
     })
 
-@app.route('/', methods=['GET'])
-def home():
-    """Página de inicio de la API."""
-    return jsonify({
-        'service': 'WolfData Certificados API',
-        'version': '1.0.0',
-        'endpoints': {
-            'antecedentes_penales': '/antpen?dni=12345678',
-            'antecedentes_policiales': '/antpol?dni=12345678',
-            'antecedentes_judiciales': '/antjud?dni=12345678',
-            'health': '/health'
-        },
-        'description': 'API especializada para consultas de antecedentes (penales, policiales, judiciales) con PDFs'
-    })
 
 def restart_telethon():
     """Reinicia el cliente de Telethon."""
