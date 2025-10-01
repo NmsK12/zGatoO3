@@ -6,8 +6,8 @@ import psycopg2
 import os
 from datetime import datetime, timedelta
 
-# URL de conexión a PostgreSQL de Railway (usar variable de entorno)
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:password@postgres.railway.internal:5432/railway')
+# URL de conexión a PostgreSQL de Railway
+DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:HwTdcvNsmJyRlcExdwNbjInngGAAnJPA@ballast.proxy.rlwy.net:28072/railway')
 
 def init_database():
     """Inicializa la base de datos PostgreSQL"""
