@@ -73,16 +73,56 @@ def parse_antecedentes_response(text, tipo):
     
     return data
 
+def check_connection():
+    """Verifica la conexión de Telegram y reinicia si es necesario."""
+    global client, loop
+    
+    try:
+        if not client or not client.is_connected():
+            logger.info("Cliente desconectado, intentando reconectar...")
+            restart_telethon()
+            return False
+        return True
+    except Exception as e:
+        logger.error(f"Error verificando conexión: {str(e)}")
+        restart_telethon()
+        return False
+
+def restart_telethon():
+    """Reinicia el cliente de Telethon."""
+    global client, loop
+    
+    try:
+        if client:
+            # Cerrar cliente existente
+            try:
+                loop.call_soon_threadsafe(lambda: asyncio.create_task(client.disconnect()))
+            except:
+                pass
+            client = None
+        
+        # Esperar un poco antes de reiniciar
+        import time
+        time.sleep(2)
+        
+        # Reiniciar en un nuevo hilo
+        init_telethon_thread()
+        
+        logger.info("Telethon reiniciado correctamente")
+            
+    except Exception as e:
+        logger.error(f"Error reiniciando Telethon: {str(e)}")
+
 def consult_antecedentes_sync(dni_number, tipo):
     """Consulta antecedentes usando Telethon de forma síncrona."""
     global client, loop
     
     try:
-        # Verificar que el cliente esté disponible
-        if not client:
+        # Verificar conexión
+        if not check_connection():
             return {
                 'success': False,
-                'error': 'Cliente de Telegram no inicializado'
+                'error': 'Cliente de Telegram no disponible. Intenta nuevamente en unos segundos.'
             }
         
         # Ejecutar la consulta asíncrona en el loop existente
@@ -130,11 +170,18 @@ async def consult_antecedentes_async(dni_number, tipo):
             logger.info(f"Intento {attempt}/{max_attempts} para {tipo.upper()} DNI {dni_number}")
             
             # Determinar comando según tipo
-            comando = f"/ant{tipo[:3]}"  # antpen, antpol, antjud
+            if tipo == "penales":
+                comando = "/antpen"
+            elif tipo == "policiales":
+                comando = "/antpol"
+            elif tipo == "judiciales":
+                comando = "/antjud"
+            else:
+                comando = f"/ant{tipo[:3]}"
             
             # Enviar comando
             await client.send_message(config.TARGET_BOT, f"{comando} {dni_number}")
-            logger.info(f"Comando {comando} enviado correctamente (intento {attempt})")
+            logger.info(f"Comando {comando} {dni_number} enviado correctamente (intento {attempt})")
             
             # Esperar un poco antes de revisar mensajes
             await asyncio.sleep(2)
