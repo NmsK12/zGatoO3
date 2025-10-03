@@ -94,11 +94,15 @@ def restart_telethon():
     
     try:
         if client:
-            # Cerrar cliente existente
+            # Cerrar cliente existente de forma segura
             try:
-                loop.call_soon_threadsafe(lambda: asyncio.create_task(client.disconnect()))
-            except:
-                pass
+                if loop and not loop.is_closed():
+                    loop.call_soon_threadsafe(lambda: asyncio.create_task(client.disconnect()))
+                else:
+                    # Si no hay loop disponible, simplemente marcar como desconectado
+                    logger.warning("No hay loop disponible para desconectar cliente")
+            except Exception as e:
+                logger.warning(f"Error cerrando cliente anterior: {str(e)}")
             client = None
         
         # Esperar un poco antes de reiniciar
