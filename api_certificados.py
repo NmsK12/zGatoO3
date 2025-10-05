@@ -220,6 +220,14 @@ async def consult_antecedentes_async(dni_number, tipo):
                         await asyncio.sleep(wait_time)
                         continue
                 
+                # Verificar si es mensaje de "No se encontró información"
+                if "[✖️] No se encontro informacion para los datos ingresados." in message.text:
+                    logger.info(f"Mensaje de 'No se encontró información' detectado para {tipo.upper()} DNI {dni_number}")
+                    return {
+                        'success': False,
+                        'error': 'No encontre datos p babosa.'
+                    }
+                
                 # Buscar respuesta específica para antecedentes
                 # Limpiar el texto para comparación
                 clean_message = message.text.replace('`', '').replace('*', '').replace('**', '')
